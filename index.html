@@ -3,136 +3,568 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoC Village Inspector - Mrl</title>
+    <title>CoC Village Inspector - Dashboard Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
-    <!-- Tailwind CSS para estilização rápida -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
         body {
             font-family: 'Courier Prime', monospace;
-            background-color: #0d0d0d;
+            background-color: #0b0b0e;
             color: #e5e5e5;
         }
         .gold-border { border-color: #d4af37; }
         .gold-text { color: #d4af37; }
-        .red-accent { color: #ff3333; }
-        .bg-card { background-color: #161616; }
+        .bg-card { background-color: #121216; }
+        .progress-bar-fill {
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+        .aggressive-bar {
+            background: linear-gradient(90deg, #991b1b 0%, #ef4444 55%, #f59e0b 100%);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
+            animation: pulse-red 2s infinite;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
 
-    <div class="w-full max-w-4xl">
+    <div class="w-full max-w-5xl">
         <!-- Cabeçalho -->
-        <header class="text-center mb-8 border-b border-red-900/50 pb-4">
-            <h1 class="text-3xl font-bold gold-text tracking-wider">🏰 COC VILLAGE INSPECTOR</h1>
-            <p class="text-sm text-gray-400 mt-1">Cole o JSON da sua vila para analisar CV, Defesas e Heróis em tempo real.</p>
+        <header class="text-center mb-8 border-b border-red-900/40 pb-4">
+            <h1 class="text-3xl font-bold gold-text tracking-wider">🏰 COC VILLAGE DASHBOARD</h1>
+            <p class="text-xs text-gray-400 mt-1">Análise de Progresso, Laboratório, Heróis, Defesas e Fila de Melhorias Ativas</p>
         </header>
 
-        <!-- Área de Input -->
+        <!-- Área de Input Manual do JSON -->
         <div class="bg-card p-6 rounded-xl border gold-border shadow-2xl mb-8">
-            <label for="jsonInput" class="block text-sm font-bold mb-2 gold-text">Cole o JSON do Jogador:</label>
-            <textarea id="jsonInput" rows="5" class="w-full bg-black/60 border border-gray-800 rounded p-3 text-xs text-green-400 focus:outline-none focus:border-red-600 font-mono" placeholder='Cole o seu JSON aqui (ex: {"tag":"#GJ2YGGVP9", ...})'></textarea>
-            <div class="mt-4 flex gap-4">
-                <button onclick="analisarVila()" class="bg-red-700 hover:bg-red-800 text-white font-bold px-6 py-2 rounded transition tracking-wide text-sm cursor-pointer shadow-lg shadow-red-900/40">
-                    ANALISAR VILA
+            <label for="jsonInput" class="block text-xs font-bold mb-2 gold-text uppercase tracking-widest">Insira o JSON da Vila:</label>
+            <textarea id="jsonInput" rows="5" class="w-full bg-black/70 border border-zinc-800 rounded p-3 text-xs text-green-400 focus:outline-none focus:border-red-600 font-mono" placeholder='Cole aqui o JSON exportado do Clash of Clans...'></textarea>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <button onclick="analisarVila()" class="bg-red-700 hover:bg-red-800 text-white font-bold px-6 py-2.5 rounded transition tracking-wide text-xs cursor-pointer shadow-lg shadow-red-900/40">
+                    PROCESSAR PAINEL
                 </button>
-                <button onclick="carregarExemplo()" class="bg-zinc-800 hover:bg-zinc-700 gold-text text-xs px-4 py-2 rounded transition cursor-pointer border border-zinc-700">
-                    Carregar Exemplo (#GJ2YGGVP9)
+                <button onclick="limparCampo()" class="bg-zinc-900 hover:bg-zinc-800 text-gray-400 hover:text-white text-xs px-4 py-2.5 rounded transition cursor-pointer border border-zinc-800">
+                    Limpar
                 </button>
             </div>
         </div>
 
         <!-- Resultados -->
         <div id="resultadoContainer" class="hidden space-y-6">
-            <!-- Visão Geral (Tag e CV) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Resumo Geral (Tag, CV, Construtores) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="bg-card p-4 rounded-xl border border-zinc-800 text-center">
-                    <span class="text-xs text-gray-400 block">TAG DA VILA</span>
-                    <span id="resTag" class="text-lg font-bold gold-text">--</span>
+                    <span class="text-xs text-gray-400 block mb-1">TAG DA VILA</span>
+                    <span id="resTag" class="text-base font-bold gold-text">--</span>
                 </div>
                 <div class="bg-card p-4 rounded-xl border border-zinc-800 text-center">
-                    <span class="text-xs text-gray-400 block">CENTRO DE VILA (CV)</span>
-                    <span id="resCv" class="text-2xl font-bold text-red-500">--</span>
+                    <span class="text-xs text-gray-400 block mb-1">CENTRO DE VILA</span>
+                    <span id="resCv" class="text-xl font-bold text-red-500">--</span>
                 </div>
                 <div class="bg-card p-4 rounded-xl border border-zinc-800 text-center">
-                    <span class="text-xs text-gray-400 block">ATUALIZADO EM</span>
-                    <span id="resTimestamp" class="text-sm font-bold text-gray-300">--</span>
+                    <span class="text-xs text-gray-400 block mb-1">AJUDANTES / CONSTRUTORES</span>
+                    <span id="resBuilders" class="text-lg font-bold text-amber-400">--</span>
+                </div>
+                <div class="bg-card p-4 rounded-xl border border-zinc-800 text-center">
+                    <span class="text-xs text-gray-400 block mb-1">EXPORTADO EM</span>
+                    <span id="resTimestamp" class="text-xs font-bold text-gray-300 mt-1 block">--</span>
                 </div>
             </div>
 
-            <!-- Heróis -->
-            <div class="bg-card p-6 rounded-xl border border-zinc-800">
-                <h2 class="text-lg font-bold gold-text mb-4 border-b border-zinc-800 pb-2">👑 Heróis</h2>
-                <div id="resHeroes" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <!-- Fila de Melhorias Ativas (Timers) -->
+            <div class="bg-card p-6 rounded-xl border border-red-900/60 shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+                    <h2 class="text-sm font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">⚡ Fila de Melhorias & Cooldowns Ativos</h2>
+                    <span id="badgeActiveTimers" class="text-xs font-bold bg-red-950 text-red-400 border border-red-800/60 px-2.5 py-0.5 rounded">0 em andamento</span>
+                </div>
+                <div id="resTimers" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Preenchido via JS -->
                 </div>
             </div>
 
-            <!-- Defesas Principais e Edifícios -->
-            <div class="bg-card p-6 rounded-xl border border-zinc-800">
-                <h2 class="text-lg font-bold gold-text mb-4 border-b border-zinc-800 pb-2">🛡️ Defesas e Estruturas</h2>
-                <div id="resBuildings" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    <!-- Preenchido via JS -->
+            <!-- Painel de Progresso Geral & Vila -->
+            <div class="bg-card p-6 rounded-xl border gold-border/60 shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+                    <h2 class="text-sm font-bold gold-text uppercase tracking-wider">📊 Progresso de Evolução (Vila & Heróis)</h2>
+                    <span id="badgeOverall" class="text-xs font-bold bg-amber-950/70 text-amber-400 border border-amber-700/50 px-2.5 py-0.5 rounded">Geral: 0%</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Barra Geral -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">🔥 Conclusão Total da Conta</span>
+                            <span id="pctOverall" class="gold-text font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-3 border border-zinc-800 overflow-hidden">
+                            <div id="barOverall" class="progress-bar-fill bg-gradient-to-r from-red-700 via-amber-500 to-yellow-400 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span class="text-[11px] text-gray-500 mt-1 block">Média consolidada (Estruturas + Heróis + Laboratório)</span>
+                    </div>
+
+                    <!-- Barra Heróis -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">👑 Heróis Principais</span>
+                            <span id="pctHeroes" class="gold-text font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-3 border border-zinc-800 overflow-hidden">
+                            <div id="barHeroes" class="progress-bar-fill bg-amber-500 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="detailHeroes" class="text-[11px] text-gray-500 mt-1 block">0 / 0 níveis</span>
+                    </div>
+
+                    <!-- Barra Defesas -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">🛡️ Defesas Principais</span>
+                            <span id="pctDefenses" class="text-red-400 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-3 border border-zinc-800 overflow-hidden">
+                            <div id="barDefenses" class="progress-bar-fill bg-red-600 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="detailDefenses" class="text-[11px] text-gray-500 mt-1 block">0 / 0 níveis totais</span>
+                    </div>
+
+                    <!-- Barra Muros -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">🧱 Muros</span>
+                            <span id="pctWalls" class="text-emerald-400 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-3 border border-zinc-800 overflow-hidden">
+                            <div id="barWalls" class="progress-bar-fill bg-emerald-500 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="detailWalls" class="text-[11px] text-gray-500 mt-1 block">0 / 0 níveis de muro</span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Painel de Progresso do Laboratório (Tropas, Feitiços & Pets) -->
+            <div class="bg-card p-6 rounded-xl border border-purple-900/50 shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+                    <h2 class="text-sm font-bold text-purple-400 uppercase tracking-wider">🧪 Progresso do Laboratório & Casa de Pets</h2>
+                    <span id="badgeLab" class="text-xs font-bold bg-purple-950/70 text-purple-300 border border-purple-700/50 px-2.5 py-0.5 rounded">Lab Total: 0%</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Média Laboratório -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">🔬 Geral Lab</span>
+                            <span id="pctLabTotal" class="text-purple-400 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-2.5 border border-zinc-800 overflow-hidden">
+                            <div id="barLabTotal" class="progress-bar-fill bg-purple-500 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="detailLabTotal" class="text-[11px] text-gray-500 mt-1 block">0 / 0 níveis</span>
+                    </div>
+
+                    <!-- Tropas -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">⚔️ Tropas</span>
+                            <span id="pctUnits" class="text-sky-400 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-2.5 border border-zinc-800 overflow-hidden">
+                            <div id="barUnits" class="progress-bar-fill bg-sky-500 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="detailUnits" class="text-[11px] text-gray-500 mt-1 block">0 / 0 níveis</span>
+                    </div>
+
+                    <!-- Feitiços -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">⚡ Feitiços</span>
+                            <span id="pctSpells" class="text-indigo-400 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-2.5 border border-zinc-800 overflow-hidden">
+                            <div id="barSpells" class="progress-bar-fill bg-indigo-500 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="detailSpells" class="text-[11px] text-gray-500 mt-1 block">0 / 0 níveis</span>
+                    </div>
+
+                    <!-- Pets -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-200 font-bold">🐾 Pets</span>
+                            <span id="pctPets" class="text-pink-400 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-2.5 border border-zinc-800 overflow-hidden">
+                            <div id="barPets" class="progress-bar-fill bg-pink-500 h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="detailPets" class="text-[11px] text-gray-500 mt-1 block">0 / 0 níveis</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Heróis & Equipamentos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-card p-5 rounded-xl border border-zinc-800">
+                    <h2 class="text-sm font-bold gold-text mb-4 border-b border-zinc-800 pb-2 flex items-center gap-2">👑 Heróis</h2>
+                    <div id="resHeroes" class="space-y-2"></div>
+                </div>
+                <div class="bg-card p-5 rounded-xl border border-zinc-800">
+                    <h2 class="text-sm font-bold gold-text mb-4 border-b border-zinc-800 pb-2 flex items-center gap-2">⚙️ Equipamentos</h2>
+                    <div id="resEquipment" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+
+            <!-- Seção de Tropas, Feitiços & Pets -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-card p-5 rounded-xl border border-zinc-800">
+                    <h2 class="text-sm font-bold gold-text mb-4 border-b border-zinc-800 pb-2">⚔️ Tropas (Laboratório)</h2>
+                    <div id="resUnits" class="space-y-1.5 max-h-72 overflow-y-auto pr-1"></div>
+                </div>
+                <div class="bg-card p-5 rounded-xl border border-zinc-800">
+                    <h2 class="text-sm font-bold gold-text mb-4 border-b border-zinc-800 pb-2">🧪 Feitiços</h2>
+                    <div id="resSpells" class="space-y-1.5 max-h-72 overflow-y-auto pr-1"></div>
+                </div>
+                <div class="bg-card p-5 rounded-xl border border-zinc-800">
+                    <h2 class="text-sm font-bold gold-text mb-4 border-b border-zinc-800 pb-2">🐾 Pets</h2>
+                    <div id="resPets" class="space-y-1.5 max-h-72 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+
+            <!-- Seção de Defesas, Edifícios e Muros -->
+            <div class="bg-card p-6 rounded-xl border border-zinc-800">
+                <h2 class="text-sm font-bold gold-text mb-4 border-b border-zinc-800 pb-2">🛡️ Defesas, Muros e Estruturas</h2>
+                <div id="resBuildings" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+            </div>
+
         </div>
     </div>
 
-    <!-- Script de Análise do JSON do CoC -->
+    <!-- Script de Parse, Timers e Cálculo Completo -->
     <script>
-        // Mapeamento de IDs internos do Clash of Clans para nomes legíveis
+        let timerInterval = null;
+
+        // Dicionário completo de tradução de IDs do Clash of Clans
         const ID_MAP = {
-            28000000: "Rei Bárbaro",
-            28000001: "Rainha Arqueira",
-            28000002: "Grande Guardião",
-            28000004: "Campeã Real",
-            28000006: "Minion Príncipe",
-            28000007: "Grande Guardião (Builder)",
-            // Edifícios comuns e defesas
-            1000001: "Centro de Vila (Town Hall)",
-            1000002: "Canhão",
-            1000003: "Archer Tower (Torre Arqueira)",
-            1000004: "Mortor",
-            1000005: "Air Defense (Defesa Aérea)",
-            1000006: "Wizard Tower (Torre do Mago)",
-            1000007: "Hidden Tesla (Tesla Oculta)",
-            1000008: "X-Bow (X-Besta)",
-            1000009: "Inferno Tower",
-            1000010: "Muros (Walls)",
-            1000011: "Eagle Artillery (Águia)",
-            1000012: "Scattershot",
-            1000013: "Bomb Tower",
-            1000014: "Builder's Hut",
-            1000056: "Monolith (Monólito)",
-            1000033: "Muros BH",
-            1000034: "Canhão Duplo",
-            1000035: "Archer Tower (BH)",
-            1000036: "Tesla Oculta (BH)"
+            // Ajudantes
+            93000000: "Aprendiz de Construtor", 93000001: "Assistente de Laboratório", 93000002: "Alquimista",
+            // Heróis
+            28000000: "Rei Bárbaro", 28000001: "Rainha Arqueira", 28000002: "Grande Guardião",
+            28000004: "Campeã Real", 28000006: "Príncipe Servo", 28000007: "Guardião (Construtor)",
+            28000003: "Máquina de Batalha", 28000005: "Helicóptero de Batalha",
+            // Edifícios & Defesas
+            1000000: "Acampamento", 1000001: "Centro de Vila (Town Hall)", 1000002: "Canhão",
+            1000003: "Torre Arqueira", 1000004: "Morteiro", 1000005: "Defesa Aérea",
+            1000006: "Torre do Mago", 1000007: "Tesla Oculta", 1000008: "X-Besta",
+            1000009: "Torre Inferno", 1000010: "Muros", 1000011: "Artilharia Águia",
+            1000012: "Disseminador", 1000013: "Torre de Bombas", 1000014: "Castelo do Clã",
+            1000015: "Cabana do Construtor", 1000019: "Fábrica de Feitiços", 1000020: "Laboratório",
+            1000021: "Dispensador Aéreo", 1000023: "Fábrica Sombria", 1000024: "Quartel",
+            1000026: "Quartel Negro", 1000027: "Torre Arqueira (Multiuso)", 1000028: "Torre do Mago (Super)",
+            1000029: "Oficina", 1000032: "Casa de Pets", 1000056: "Base do Construtor",
+            1000059: "Monólito", 1000067: "Torre de Feitiços", 1000068: "Ferreiro",
+            1000070: "Salão dos Heróis", 1000071: "Cabana do Ajudante", 1000072: "Canhão Ricochete",
+            1000077: "Torre Multi-Arqueira", 1000084: "Lança-Chamas", 1000085: "Cospe-Fogo",
+            1000093: "Torre de Fusão", 1000097: "Defesa Sazonal",
+            // Tropas
+            4000000: "Bárbaro", 4000001: "Arqueira", 4000002: "Gigante", 4000003: "Goblin",
+            4000004: "Quebra-Muros", 4000005: "Balão", 4000006: "Mago", 4000007: "Curadora",
+            4000008: "Dragão", 4000009: "P.E.K.K.A", 4000010: "Servo", 4000011: "Corredor",
+            4000012: "Dragão Bebê", 4000013: "Mineiro", 4000015: "Valquíria",
+            4000017: "Golem", 4000022: "Bruxa", 4000023: "Lava Hound", 4000024: "Lançador",
+            4000053: "Yeti", 4000058: "Golem de Gelo", 4000059: "Dragão Elétrico",
+            4000065: "Cavaleiro Dragão", 4000082: "Titã Elétrica",
+            // Feitiços
+            26000000: "Relâmpago", 26000001: "Cura", 26000002: "Fúria",
+            26000003: "Salto", 26000005: "Gelo", 26000009: "Veneno",
+            26000010: "Terremoto", 26000011: "Aceleração", 26000016: "Esqueleto",
+            26000017: "Morcego", 26000028: "Invisibilidade", 26000035: "Rechamada",
+            26000053: "Crescimento", 26000070: "Reviver",
+            // Pets
+            73000000: "L.A.S.S.I", 73000001: "Coruja Elétrica", 73000002: "Iaque Poderoso",
+            73000003: "Unicórnio", 73000004: "Lagarto Venenoso", 73000007: "Diggy",
+            73000008: "Fênix", 73000009: "Raposa Espiritual", 73000010: "Água-Viva Raivosa",
+            // Equipamentos
+            90000000: "Boneco de Bárbaro", 90000001: "Frasco de Fúria", 90000002: "Boneco de Arqueira",
+            90000003: "Frasco de Invisibilidade", 90000004: "Manopla Gigante", 90000005: "Bigode Vampírico",
+            90000006: "Flecha Gigante", 90000007: "Boneco de Curadora", 90000008: "Tomo Eterno",
+            90000009: "Gema da Vida", 90000010: "Gema de Fúria", 90000011: "Gema Curativa",
+            90000013: "Escudo Buscador", 90000014: "Gema Real", 90000015: "Boneco de Corredor",
+            90000016: "Frasco de Aceleração", 90000017: "Botas de Terremoto", 90000019: "Bola de Fogo",
+            90000020: "Flecha Congelante", 90000022: "Espelho Mágico", 90000024: "Lança Foguetes",
+            90000032: "Bola Espinhosa", 90000034: "Orbe Sombrio", 90000035: "Boneco de Capanga",
+            90000039: "Calça Metálica", 90000040: "Coroa Sombria", 90000041: "Botas Elétricas",
+            90000042: "Tocha Heroica"
         };
 
-        function carregarExemplo() {
-            const exemploJSON = {
-                "tag":"#GJ2YGGVP9","timestamp":1794527573,
-                "buildings":[{"data":1000001,"lvl":17,"weapon":1},{"data":1000006,"lvl":15,"timer":165087},{"data":1000008,"lvl":21,"gear_up":1},{"data":1000009,"lvl":19,"gear_up":1},{"data":1000000,"lvl":12,"cnt":4},{"data":1000002,"lvl":8,"cnt":6},{"data":1000002,"lvl":9,"cnt":1},{"data":1000003,"lvl":14,"cnt":1},{"data":1000003,"lvl":15,"cnt":3},{"data":1000004,"lvl":9,"cnt":3},{"data":1000004,"lvl":10,"cnt":3},{"data":1000004,"lvl":11,"cnt":1},{"data":1000005,"lvl":16,"cnt":3},{"data":1000005,"lvl":17,"cnt":1},{"data":1000007,"lvl":14,"cnt":1},{"data":1000008,"lvl":19,"cnt":2},{"data":1000009,"lvl":19,"cnt":3},{"data":1000010,"lvl":10,"cnt":25},{"data":1000010,"lvl":11,"cnt":80},{"data":1000010,"lvl":12,"cnt":220},{"data":1000011,"lvl":11,"cnt":3},{"data":1000011,"lvl":12,"cnt":2},{"data":1000012,"lvl":9,"cnt":4},{"data":1000013,"lvl":10,"cnt":3},{"data":1000013,"lvl":12,"cnt":1},{"data":1000014,"lvl":12,"cnt":1},{"data":1000056,"lvl":3,"timer":263470}],
-                "heroes":[{"data":28000000,"lvl":39},{"data":28000001,"lvl":37},{"data":28000002,"lvl":21},{"data":28000004,"lvl":11},{"data":28000006,"lvl":19},{"data":28000007,"lvl":3}]
+        // Níveis máximos por Centro de Vila (CV 13 a CV 17)
+        const MAX_LEVELS_BY_TH = {
+            13: {
+                heroes: { 28000000: 75, 28000001: 75, 28000002: 50, 28000004: 25, 28000006: 50 },
+                defenses: { 1000002: 19, 1000003: 19, 1000004: 13, 1000005: 11, 1000006: 13, 1000007: 12, 1000008: 8, 1000009: 7, 1000011: 4, 1000012: 2, 1000013: 8 },
+                wall: 14, unitMax: 10, spellMax: 8, petMax: 10
+            },
+            14: {
+                heroes: { 28000000: 80, 28000001: 80, 28000002: 55, 28000004: 30, 28000006: 60 },
+                defenses: { 1000002: 20, 1000003: 20, 1000004: 14, 1000005: 12, 1000006: 14, 1000007: 13, 1000008: 9, 1000009: 8, 1000011: 5, 1000012: 3, 1000013: 9 },
+                wall: 15, unitMax: 10, spellMax: 9, petMax: 10
+            },
+            15: {
+                heroes: { 28000000: 90, 28000001: 90, 28000002: 65, 28000004: 40, 28000006: 70 },
+                defenses: { 1000002: 21, 1000003: 21, 1000004: 15, 1000005: 13, 1000006: 15, 1000007: 14, 1000008: 10, 1000009: 9, 1000011: 6, 1000012: 4, 1000013: 10, 1000059: 2 },
+                wall: 16, unitMax: 11, spellMax: 10, petMax: 10
+            },
+            16: {
+                heroes: { 28000000: 95, 28000001: 95, 28000002: 70, 28000004: 45, 28000006: 80 },
+                defenses: { 1000002: 21, 1000003: 21, 1000004: 16, 1000005: 14, 1000006: 16, 1000007: 15, 1000008: 11, 1000009: 10, 1000011: 7, 1000012: 5, 1000013: 11, 1000059: 3 },
+                wall: 17, unitMax: 12, spellMax: 11, petMax: 10
+            },
+            17: {
+                heroes: { 28000000: 100, 28000001: 100, 28000002: 75, 28000004: 50, 28000006: 90 },
+                defenses: { 1000002: 21, 1000003: 21, 1000004: 17, 1000005: 15, 1000006: 17, 1000007: 16, 1000008: 12, 1000009: 11, 1000011: 7, 1000012: 6, 1000013: 12, 1000059: 4, 1000072: 3, 1000077: 3, 1000084: 2, 1000085: 2, 1000093: 2 },
+                wall: 18, unitMax: 13, spellMax: 12, petMax: 10
+            }
+        };
+
+        // Teto específico por tropa/feitiço para cálculo preciso no Laboratório
+        const LAB_MAX_OVERRIDES = {
+            4000000: 12, 4000001: 12, 4000002: 12, 4000003: 9, 4000004: 12, 4000005: 11,
+            4000006: 12, 4000007: 9, 4000008: 11, 4000009: 11, 4000010: 12, 4000011: 13,
+            4000012: 10, 4000013: 10, 4000015: 11, 4000017: 13, 4000022: 7, 4000023: 7,
+            4000024: 8, 4000053: 6, 4000058: 8, 4000059: 7, 4000065: 5, 4000082: 4,
+            26000000: 12, 26000001: 10, 26000002: 6, 26000003: 5, 26000005: 8, 26000009: 10,
+            26000010: 5, 26000011: 6, 26000016: 8, 26000017: 6, 26000028: 4, 26000035: 5,
+            26000053: 3, 26000070: 3
+        };
+
+        function limparCampo() {
+            document.getElementById('jsonInput').value = '';
+            document.getElementById('resultadoContainer').classList.add('hidden');
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function formatarTempo(segundos) {
+            if (segundos <= 0) return 'Concluído!';
+            const d = Math.floor(segundos / 86400);
+            const h = Math.floor((segundos % 86400) / 3600);
+            const m = Math.floor((segundos % 3600) / 60);
+            const s = Math.floor(segundos % 60);
+            const partes = [];
+            if (d > 0) partes.push(`${d}d`);
+            if (h > 0 || d > 0) partes.push(`${h}h`);
+            partes.push(`${m}m`);
+            partes.push(`${s}s`);
+            return partes.join(' ');
+        }
+
+        function renderizarFilaMelhorias(data) {
+            if (timerInterval) clearInterval(timerInterval);
+
+            const timersEncontrados = [];
+            const categorias = [
+                { key: 'buildings', tipo: 'Vila Principal' },
+                { key: 'buildings2', tipo: 'Base do Construtor' },
+                { key: 'heroes', tipo: 'Herói' },
+                { key: 'heroes2', tipo: 'Herói (BC)' },
+                { key: 'units', tipo: 'Laboratório (Tropa)' },
+                { key: 'units2', tipo: 'Lab (Construtor)' },
+                { key: 'spells', tipo: 'Laboratório (Feitiço)' },
+                { key: 'pets', tipo: 'Casa de Pets' },
+                { key: 'traps', tipo: 'Armadilha' },
+                { key: 'helpers', tipo: 'Ajudante (Cooldown)' }
+            ];
+
+            categorias.forEach(cat => {
+                (data[cat.key] || []).forEach(item => {
+                    const tempoRestante = item.timer || item.helper_cooldown;
+                    if (tempoRestante && tempoRestante > 0) {
+                        const nome = ID_MAP[item.data] || `Item ID: ${item.data}`;
+                        const isCooldown = Boolean(item.helper_cooldown);
+                        // Referência agressiva de duração máxima para estimar percentual concluído da melhoria atual
+                        const referenciaDuracao = isCooldown ? 86400 : Math.max(tempoRestante * 1.35, 345600);
+                        const pctAgressiva = Math.min(98, Math.max(8, ((1 - (tempoRestante / referenciaDuracao)) * 100))).toFixed(1);
+
+                        timersEncontrados.push({
+                            nome,
+                            tipo: cat.tipo,
+                            lvlAtual: item.lvl,
+                            proximoLvl: isCooldown ? `Nv. ${item.lvl}` : `Nv. ${item.lvl} → ${item.lvl + 1}`,
+                            isCooldown,
+                            segundosRestantes: tempoRestante,
+                            pctAgressiva
+                        });
+                    }
+                });
+            });
+
+            const container = document.getElementById('resTimers');
+            const badge = document.getElementById('badgeActiveTimers');
+            badge.innerText = `${timersEncontrados.length} em andamento`;
+
+            if (timersEncontrados.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500 col-span-2">Nenhuma melhoria ou cooldown ativo encontrado neste JSON.</p>';
+                return;
+            }
+
+            const atualizarCards = () => {
+                container.innerHTML = '';
+                timersEncontrados.forEach(t => {
+                    const labelStatus = t.isCooldown ? 'RECUPERANDO' : t.proximoLvl;
+                    container.innerHTML += `
+                        <div class="bg-black/50 p-4 rounded-lg border border-red-900/50 space-y-2">
+                            <div class="flex justify-between items-start gap-2">
+                                <div>
+                                    <span class="text-xs font-bold text-gray-100 block">${t.nome}</span>
+                                    <span class="text-[11px] text-gray-400">${t.tipo} • <strong class="gold-text">${labelStatus}</strong></span>
+                                </div>
+                                <span class="text-xs font-bold text-red-400 bg-red-950/60 px-2 py-0.5 rounded border border-red-800/40 whitespace-nowrap">
+                                    ⏱️ ${formatarTempo(t.segundosRestantes)}
+                                </span>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[10px] mb-1">
+                                    <span class="text-red-400 font-bold uppercase tracking-wider">Progresso da Melhoria</span>
+                                    <span class="text-amber-400 font-bold">${t.pctAgressiva}%</span>
+                                </div>
+                                <div class="w-full bg-zinc-900 rounded-full h-2.5 border border-zinc-800 overflow-hidden">
+                                    <div class="aggressive-bar h-full rounded-full" style="width: ${t.pctAgressiva}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
             };
-            document.getElementById('jsonInput').value = JSON.stringify(exemploJSON, null, 2);
-            analisarVila();
+
+            atualizarCards();
+
+            // Contagem regressiva ao vivo a cada 1 segundo
+            timerInterval = setInterval(() => {
+                let algumAtivo = false;
+                timersEncontrados.forEach(t => {
+                    if (t.segundosRestantes > 0) {
+                        t.segundosRestantes -= 1;
+                        algumAtivo = true;
+                    }
+                });
+                atualizarCards();
+                if (!algumAtivo) clearInterval(timerInterval);
+            }, 1000);
+        }
+
+        function calcularProgresso(data, thLevel) {
+            const caps = MAX_LEVELS_BY_TH[thLevel] || MAX_LEVELS_BY_TH[17];
+
+            // 1. Heróis Principais
+            let heroCur = 0, heroMax = 0;
+            (data.heroes || []).forEach(h => {
+                if (caps.heroes[h.data]) {
+                    heroCur += Math.min(h.lvl, caps.heroes[h.data]);
+                    heroMax += caps.heroes[h.data];
+                }
+            });
+            const pctHeroes = heroMax > 0 ? ((heroCur / heroMax) * 100).toFixed(1) : 0;
+
+            // 2. Defesas e Muros
+            let defCur = 0, defMax = 0, wallCur = 0, wallMax = 0;
+            (data.buildings || []).forEach(b => {
+                const qtd = b.cnt || 1;
+                if (b.data === 1000010) {
+                    wallCur += Math.min(b.lvl, caps.wall) * qtd;
+                    wallMax += caps.wall * qtd;
+                } else if (caps.defenses[b.data]) {
+                    defCur += Math.min(b.lvl, caps.defenses[b.data]) * qtd;
+                    defMax += caps.defenses[b.data] * qtd;
+                }
+            });
+            const pctDefenses = defMax > 0 ? ((defCur / defMax) * 100).toFixed(1) : 0;
+            const pctWalls = wallMax > 0 ? ((wallCur / wallMax) * 100).toFixed(1) : 0;
+
+            // 3. Laboratório: Tropas, Feitiços e Pets
+            let unitCur = 0, unitMax = 0;
+            (data.units || []).forEach(u => {
+                const maxTeto = LAB_MAX_OVERRIDES[u.data] || caps.unitMax;
+                unitCur += Math.min(u.lvl, maxTeto);
+                unitMax += maxTeto;
+            });
+            const pctUnits = unitMax > 0 ? ((unitCur / unitMax) * 100).toFixed(1) : 0;
+
+            let spellCur = 0, spellMax = 0;
+            (data.spells || []).forEach(s => {
+                const maxTeto = LAB_MAX_OVERRIDES[s.data] || caps.spellMax;
+                spellCur += Math.min(s.lvl, maxTeto);
+                spellMax += maxTeto;
+            });
+            const pctSpells = spellMax > 0 ? ((spellCur / spellMax) * 100).toFixed(1) : 0;
+
+            let petCur = 0, petMax = 0;
+            (data.pets || []).forEach(p => {
+                const maxTeto = caps.petMax;
+                petCur += Math.min(p.lvl, maxTeto);
+                petMax += maxTeto;
+            });
+            const pctPets = petMax > 0 ? ((petCur / petMax) * 100).toFixed(1) : 0;
+
+            const labCurTotal = unitCur + spellCur + petCur;
+            const labMaxTotal = unitMax + spellMax + petMax;
+            const pctLabTotal = labMaxTotal > 0 ? ((labCurTotal / labMaxTotal) * 100).toFixed(1) : 0;
+
+            // 4. Média Geral Consolidada
+            const categoriasValidas = [];
+            if (heroMax > 0) categoriasValidas.push(parseFloat(pctHeroes));
+            if (defMax > 0) categoriasValidas.push(parseFloat(pctDefenses));
+            if (wallMax > 0) categoriasValidas.push(parseFloat(pctWalls));
+            if (labMaxTotal > 0) categoriasValidas.push(parseFloat(pctLabTotal));
+
+            const pctOverall = categoriasValidas.length > 0
+                ? (categoriasValidas.reduce((a, b) => a + b, 0) / categoriasValidas.length).toFixed(1)
+                : 0;
+
+            // Atualizar UI - Vila & Heróis
+            document.getElementById('pctOverall').innerText = `${pctOverall}%`;
+            document.getElementById('badgeOverall').innerText = `Geral: ${pctOverall}%`;
+            document.getElementById('barOverall').style.width = `${pctOverall}%`;
+
+            document.getElementById('pctHeroes').innerText = `${pctHeroes}%`;
+            document.getElementById('barHeroes').style.width = `${pctHeroes}%`;
+            document.getElementById('detailHeroes').innerText = `${heroCur} / ${heroMax} níveis concluídos`;
+
+            document.getElementById('pctDefenses').innerText = `${pctDefenses}%`;
+            document.getElementById('barDefenses').style.width = `${pctDefenses}%`;
+            document.getElementById('detailDefenses').innerText = `${defCur} / ${defMax} níveis de defesa`;
+
+            document.getElementById('pctWalls').innerText = `${pctWalls}%`;
+            document.getElementById('barWalls').style.width = `${pctWalls}%`;
+            document.getElementById('detailWalls').innerText = `${wallCur} / ${wallMax} níveis de muro`;
+
+            // Atualizar UI - Laboratório
+            document.getElementById('pctLabTotal').innerText = `${pctLabTotal}%`;
+            document.getElementById('badgeLab').innerText = `Lab Total: ${pctLabTotal}%`;
+            document.getElementById('barLabTotal').style.width = `${pctLabTotal}%`;
+            document.getElementById('detailLabTotal').innerText = `${labCurTotal} / ${labMaxTotal} níveis totais`;
+
+            document.getElementById('pctUnits').innerText = `${pctUnits}%`;
+            document.getElementById('barUnits').style.width = `${pctUnits}%`;
+            document.getElementById('detailUnits').innerText = `${unitCur} / ${unitMax} níveis`;
+
+            document.getElementById('pctSpells').innerText = `${pctSpells}%`;
+            document.getElementById('barSpells').style.width = `${pctSpells}%`;
+            document.getElementById('detailSpells').innerText = `${spellCur} / ${spellMax} níveis`;
+
+            document.getElementById('pctPets').innerText = `${pctPets}%`;
+            document.getElementById('barPets').style.width = `${pctPets}%`;
+            document.getElementById('detailPets').innerText = `${petCur} / ${petMax} níveis`;
         }
 
         function analisarVila() {
             const rawText = document.getElementById('jsonInput').value.trim();
             if (!rawText) {
-                alert('Cole um JSON válido antes de analisar, parceiro!');
+                alert('Cole um JSON válido antes de processar, parceiro!');
                 return;
             }
 
             try {
                 const data = JSON.parse(rawText);
-                
-                // Exibir container de resultados
                 document.getElementById('resultadoContainer').classList.remove('hidden');
 
                 // Tag e Timestamp
@@ -144,64 +576,128 @@
                     document.getElementById('resTimestamp').innerText = 'N/A';
                 }
 
-                // Encontrar CV (Town Hall)
-                let cvLvl = '--';
-                // Buscar em buildings ou buildings2
+                // Ajudantes
+                const helpersCount = data.helpers ? data.helpers.length : 0;
+                document.getElementById('resBuilders').innerText = `${helpersCount} Ativos`;
+
+                // CV (Town Hall)
                 const allBuildings = [...(data.buildings || []), ...(data.buildings2 || [])];
                 const thObj = allBuildings.find(b => b.data === 1000001);
-                if (thObj) {
-                    cvLvl = `CV ${thObj.lvl}`;
-                }
-                document.getElementById('resCv').innerText = cvLvl;
+                const thLevel = thObj ? thObj.lvl : 17;
+                document.getElementById('resCv').innerText = thObj ? `CV ${thLevel}` : 'N/A';
 
-                // Processar Heróis
+                // Renderizar Fila de Melhorias Ativas
+                renderizarFilaMelhorias(data);
+
+                // Calcular e renderizar barras de progresso
+                calcularProgresso(data, thLevel);
+
+                // Heróis
                 const heroesContainer = document.getElementById('resHeroes');
                 heroesContainer.innerHTML = '';
                 if (data.heroes && data.heroes.length > 0) {
-                    data.heroes.forEach(hero => {
-                        const nomeHerois = ID_MAP[hero.data] || `Herói ID: ${hero.data}`;
+                    data.heroes.forEach(h => {
+                        const nome = ID_MAP[h.data] || `Herói ID: ${h.data}`;
                         heroesContainer.innerHTML += `
-                            <div class="bg-black/40 p-3 rounded border border-zinc-800 flex justify-between items-center">
-                                <span class="text-sm font-semibold text-gray-200">${nomeHerois}</span>
-                                <span class="text-md font-bold gold-text">Nível ${hero.lvl}</span>
-                            </div>
-                        `;
+                            <div class="bg-black/40 p-2.5 rounded border border-zinc-800 flex justify-between items-center text-xs">
+                                <span class="text-gray-300 font-medium">${nome}</span>
+                                <span class="gold-text font-bold">Nível ${h.lvl}</span>
+                            </div>`;
                     });
                 } else {
-                    heroesContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum herói encontrado no JSON.</p>';
+                    heroesContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum herói encontrado.</p>';
                 }
 
-                // Processar Defesas e Edifícios
+                // Equipamentos
+                const equipContainer = document.getElementById('resEquipment');
+                equipContainer.innerHTML = '';
+                if (data.equipment && data.equipment.length > 0) {
+                    data.equipment.forEach(e => {
+                        const nome = ID_MAP[e.data] || `Equip. ID: ${e.data}`;
+                        equipContainer.innerHTML += `
+                            <div class="bg-black/40 p-2.5 rounded border border-zinc-800 flex justify-between items-center text-xs">
+                                <span class="text-gray-300 font-medium truncate max-w-[140px]">${nome}</span>
+                                <span class="text-red-400 font-bold">Nv. ${e.lvl}</span>
+                            </div>`;
+                    });
+                } else {
+                    equipContainer.innerHTML = '<p class="text-xs text-gray-500 col-span-2">Nenhum equipamento listado.</p>';
+                }
+
+                // Tropas
+                const unitsContainer = document.getElementById('resUnits');
+                unitsContainer.innerHTML = '';
+                if (data.units && data.units.length > 0) {
+                    data.units.forEach(u => {
+                        const nome = ID_MAP[u.data] || `Tropa ID: ${u.data}`;
+                        unitsContainer.innerHTML += `
+                            <div class="bg-black/40 p-2 rounded border border-zinc-800 flex justify-between items-center text-xs">
+                                <span class="text-gray-300">${nome}</span>
+                                <span class="sky-400 text-sky-400 font-bold">Nv. ${u.lvl}</span>
+                            </div>`;
+                    });
+                } else {
+                    unitsContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhuma tropa encontrada.</p>';
+                }
+
+                // Feitiços
+                const spellsContainer = document.getElementById('resSpells');
+                spellsContainer.innerHTML = '';
+                if (data.spells && data.spells.length > 0) {
+                    data.spells.forEach(s => {
+                        const nome = ID_MAP[s.data] || `Feitiço ID: ${s.data}`;
+                        spellsContainer.innerHTML += `
+                            <div class="bg-black/40 p-2 rounded border border-zinc-800 flex justify-between items-center text-xs">
+                                <span class="text-gray-300">${nome}</span>
+                                <span class="text-indigo-400 font-bold">Nv. ${s.lvl}</span>
+                            </div>`;
+                    });
+                } else {
+                    spellsContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum feitiço encontrado.</p>';
+                }
+
+                // Pets
+                const petsContainer = document.getElementById('resPets');
+                petsContainer.innerHTML = '';
+                if (data.pets && data.pets.length > 0) {
+                    data.pets.forEach(p => {
+                        const nome = ID_MAP[p.data] || `Pet ID: ${p.data}`;
+                        petsContainer.innerHTML += `
+                            <div class="bg-black/40 p-2 rounded border border-zinc-800 flex justify-between items-center text-xs">
+                                <span class="text-gray-300">${nome}</span>
+                                <span class="text-pink-400 font-bold">Nv. ${p.lvl}</span>
+                            </div>`;
+                    });
+                } else {
+                    petsContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum pet encontrado.</p>';
+                }
+
+                // Defesas & Edifícios
                 const buildingsContainer = document.getElementById('resBuildings');
                 buildingsContainer.innerHTML = '';
                 if (allBuildings.length > 0) {
                     allBuildings.forEach(b => {
-                        const nomeEdificio = ID_MAP[b.data] || `Edifício / ID: ${b.data}`;
-                        const qtdStr = b.cnt ? ` (Qtd: ${b.cnt})` : '';
+                        const nome = ID_MAP[b.data] || `Edifício ID: ${b.data}`;
+                        const qtd = b.cnt ? ` (Qtd: ${b.cnt})` : '';
                         buildingsContainer.innerHTML += `
                             <div class="bg-black/40 p-2.5 rounded border border-zinc-800/80 flex justify-between items-center text-xs">
-                                <span class="text-gray-300 font-medium">${nomeEdificio}${qtdStr}</span>
-                                <span class="text-red-400 font-bold">Nível ${b.lvl || 'N/A'}</span>
-                            </div>
-                        `;
+                                <span class="text-gray-300 font-medium">${nome}${qtd}</span>
+                                <span class="text-red-400 font-bold">Nv. ${b.lvl || 'N/A'}</span>
+                            </div>`;
                     });
                 } else {
-                    buildingsContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum edifício encontrado.</p>';
+                    buildingsContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum edifício listado.</p>';
                 }
 
             } catch (err) {
-                alert('Erro ao interpretar o JSON. Verifique se o formato está correto, mano.\nDetalhe: ' + err.message);
+                alert('Erro ao processar o JSON, parceiro!\nDetalhe: ' + err.message);
             }
         }
     </script>
-
-    <!-- Registro do Service Worker para PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registrado com sucesso! Scope:', reg.scope))
-                    .catch(err => console.log('Falha ao registrar Service Worker:', err));
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW erro:', err));
             });
         }
     </script>
