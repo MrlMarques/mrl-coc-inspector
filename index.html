@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CoC Village Tracker • Clash Edition</title>
+    <title>CoC Village & Clan Tracker • Clash Edition</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0B111E">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -62,6 +62,19 @@
             box-shadow: 0 1px 0 #92400E;
         }
 
+        .btn-clash-blue {
+            background: linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%);
+            color: #FFFFFF;
+            font-weight: 800;
+            box-shadow: 0 3px 0 #1E3A8A, 0 6px 16px rgba(37, 99, 235, 0.25);
+            transition: transform 0.1s ease, filter 0.15s ease;
+        }
+
+        .btn-clash-blue:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #1E3A8A;
+        }
+
         .progress-bar-fill {
             transition: width 0.85s cubic-bezier(0.22, 1, 0.36, 1);
         }
@@ -91,7 +104,7 @@
             border-color: var(--clash-gold);
         }
 
-        /* Scrollbar Profissional Customizada (Equipamentos, Tropas, Feitiços, Pets) */
+        /* Scrollbar Profissional Customizada */
         .clash-scroll {
             scrollbar-width: thin;
             scrollbar-color: #28395C #080D17;
@@ -114,7 +127,6 @@
             background: linear-gradient(180deg, #F5B82E 0%, #D97706 100%);
         }
 
-        /* Oculta scrollbar horizontal de abas/filtros mantendo swipe suave */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -127,8 +139,8 @@
 <body class="min-h-screen pb-12">
 
     <!-- Topbar Fixa Responsiva -->
-    <nav class="sticky top-0 z-30 bg-[#0B111E]/90 backdrop-blur-md border-b border-[#1E2B45]">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <nav class="sticky top-0 z-30 bg-[#0B111E]/95 backdrop-blur-md border-b border-[#1E2B45]">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-lg shadow-md shadow-amber-500/20">
                     🏰
@@ -137,18 +149,65 @@
                     <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-white leading-none">
                         CLASH <span class="clash-gold-text">TRACKER</span>
                     </h1>
-                    <span class="text-[10px] sm:text-xs text-slate-400 font-medium">Village Inspector & Progress</span>
+                    <span class="text-[10px] sm:text-xs text-slate-400 font-medium">API & Village Inspector</span>
                 </div>
             </div>
 
-            <button id="btnToggleInput" onclick="alternarPainelInput()" class="text-xs font-semibold px-3 py-2 rounded-lg bg-[#131C2E] hover:bg-[#1B2740] text-amber-400 border border-[#28395C] transition cursor-pointer flex items-center gap-1.5">
-                <span>📥</span>
-                <span id="labelToggleInput">Inserir JSON</span>
-            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="alternarPainelToken()" title="Configurar Token API" class="text-xs font-semibold px-2.5 py-2 rounded-lg bg-[#131C2E] hover:bg-[#1B2740] text-slate-300 border border-[#28395C] transition cursor-pointer">
+                    🔑
+                </button>
+                <button id="btnToggleInput" onclick="alternarPainelInput()" class="text-xs font-semibold px-3 py-2 rounded-lg bg-[#131C2E] hover:bg-[#1B2740] text-amber-400 border border-[#28395C] transition cursor-pointer flex items-center gap-1.5">
+                    <span>📥</span>
+                    <span id="labelToggleInput">JSON Vila</span>
+                </button>
+            </div>
         </div>
     </nav>
 
     <main class="max-w-6xl mx-auto px-3 sm:px-6 pt-5 space-y-5">
+
+        <!-- Configuração de Token da API (Oculto por padrão) -->
+        <section id="tokenConfigPanel" class="hidden clash-card p-4 rounded-2xl border-sky-500/30">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">🔑 Token Supercell API (Proxy RoyaleAPI)</span>
+                <button onclick="alternarPainelToken()" class="text-xs text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <input id="apiTokenInput" type="password" class="w-full bg-[#080D17] border border-[#1E2B45] rounded-xl px-3 py-2 text-xs text-slate-300 font-mono-tech focus:outline-none focus:border-sky-400" placeholder="Cole seu Bearer Token aqui...">
+                <button onclick="salvarTokenCustom()" class="btn-clash-blue px-4 py-2 rounded-xl text-xs uppercase cursor-pointer shrink-0">
+                    Salvar Token
+                </button>
+            </div>
+        </section>
+
+        <!-- Barra de Busca Direta na API (Jogador ou Clã por #TAG) -->
+        <section class="clash-card p-4 sm:p-5 rounded-2xl border-blue-500/30">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-2.5">
+                <span class="text-xs font-extrabold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                    🔍 Buscar Jogador ou Clã na API
+                </span>
+                <span id="apiStatusBadge" class="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                    ● API Conectada
+                </span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2.5">
+                <div class="relative flex-1">
+                    <input id="searchTagInput" type="text" onkeydown="if(event.key==='Enter') executarBuscaAPI()" placeholder="Digite a #TAG (ex: #GJ2YGGVP9)" class="w-full bg-[#080D17] border border-[#1E2B45] focus:border-sky-400 rounded-xl pl-3.5 pr-3 py-2.5 text-xs sm:text-sm text-white font-mono-tech uppercase focus:outline-none">
+                </div>
+
+                <select id="searchTypeSelect" class="bg-[#080D17] border border-[#1E2B45] focus:border-sky-400 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-200 focus:outline-none cursor-pointer">
+                    <option value="player">👤 Buscar Jogador</option>
+                    <option value="clan">🛡️ Buscar Clã</option>
+                </select>
+
+                <button id="btnSearchApi" onclick="executarBuscaAPI()" class="btn-clash-blue px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5 shrink-0">
+                    <span>Buscar</span>
+                </button>
+            </div>
+            <p id="searchFeedback" class="hidden text-xs mt-2 font-medium"></p>
+        </section>
 
         <!-- Barra de Contas Salvas -->
         <section id="savedAccountsBar" class="hidden clash-card p-3.5 rounded-2xl">
@@ -167,15 +226,15 @@
         <section id="inputPanelContainer" class="clash-card p-4 sm:p-6 rounded-2xl border-amber-500/30">
             <div class="flex justify-between items-center mb-2">
                 <label for="jsonInput" class="text-xs font-bold clash-gold-text uppercase tracking-wider">
-                    Colar JSON Exportado do Jogo
+                    Colar JSON Exportado do Jogo (Edifícios, Heróis, Tropas e Timers)
                 </label>
-                <span class="text-[11px] text-slate-400 hidden sm:inline">Configurações → Mais Configurações → Exportar</span>
+                <span class="text-[11px] text-slate-400 hidden sm:inline">Sincroniza automático com a API pela #TAG</span>
             </div>
-            <textarea id="jsonInput" rows="4" class="clash-scroll w-full bg-[#080D17] border border-[#1E2B45] rounded-xl p-3 text-xs text-emerald-400 focus:outline-none focus:border-amber-400 font-mono-tech resize-y" placeholder='Cole aqui o JSON completo da sua vila (ex: {"tag":"#GJ2YGGVP9",...})'></textarea>
+            <textarea id="jsonInput" rows="4" class="clash-scroll w-full bg-[#080D17] border border-[#1E2B45] rounded-xl p-3 text-xs text-emerald-400 focus:outline-none focus:border-amber-400 font-mono-tech resize-y" placeholder='Cole aqui o JSON completo exportado dentro do jogo (ex: {"tag":"#GJ2YGGVP9",...})'></textarea>
             
             <div class="mt-3.5 flex flex-col sm:flex-row gap-2.5">
                 <button onclick="processarInputManual()" class="btn-clash-gold w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider cursor-pointer text-center">
-                    ⚡ Analisar e Salvar Vila
+                    ⚡ Analisar Vila + Sincronizar API
                 </button>
                 <button onclick="limparCampo()" class="w-full sm:w-auto bg-[#0E1626] hover:bg-[#182338] text-slate-300 text-xs font-semibold px-4 py-2.5 rounded-xl transition cursor-pointer border border-[#1E2B45]">
                     Limpar Campo
@@ -186,36 +245,54 @@
         <!-- Container Principal de Resultados -->
         <div id="resultadoContainer" class="hidden space-y-5">
             
-            <!-- Cartão de Identidade do Jogador (Nome, Clã, Nacionalidade e Tag) -->
+            <!-- Cartão de Identidade do Jogador (Nome, Clã, Nacionalidade, Liga e Tag) -->
             <section class="clash-card p-4 sm:p-5 rounded-2xl border-amber-500/25">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <!-- Exibição Visual do Perfil -->
                     <div class="flex items-center gap-3.5">
-                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#1E2B45] to-[#0E1626] border border-amber-400/40 flex items-center justify-center text-2xl sm:text-3xl shrink-0 shadow-inner">
-                            <span id="displayFlag">🇧🇷</span>
+                        <!-- Brasão do Clã ou Ícone Padrão -->
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#1E2B45] to-[#0E1626] border border-amber-400/40 flex items-center justify-center shrink-0 shadow-inner overflow-hidden p-1.5">
+                            <img id="displayClanBadge" src="" alt="Brasão" class="hidden w-full h-full object-contain">
+                            <span id="displayFlagFallback" class="text-2xl sm:text-3xl">🛡️</span>
                         </div>
-                        <div class="min-w-0">
+
+                        <div class="min-w-0 space-y-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <h2 id="displayPlayerName" class="text-base sm:text-xl font-extrabold text-white truncate">Jogador</h2>
                                 <span id="resTag" class="text-xs font-bold clash-gold-text bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-md font-mono-tech">#TAG</span>
+                                <span id="displayExpLevel" class="hidden text-[11px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md font-mono-tech">XP --</span>
                             </div>
-                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-400">
-                                <span class="flex items-center gap-1">
-                                    🛡️ <strong id="displayClanName" class="text-slate-200 font-semibold">Sem Clã Definido</strong>
-                                </span>
+
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                                <button id="btnOpenClanTab" onclick="abrirClaDoJogador()" class="flex items-center gap-1.5 text-left hover:text-amber-300 transition cursor-pointer">
+                                    <span>🛡️</span>
+                                    <strong id="displayClanName" class="text-slate-200 font-bold underline decoration-slate-600 underline-offset-2">Sem Clã Definido</strong>
+                                    <span id="displayClanRole" class="text-[10px] bg-[#0E1626] border border-[#1E2B45] px-1.5 py-0.5 rounded text-slate-300"></span>
+                                </button>
                                 <span class="text-slate-600">•</span>
-                                <span id="displayCountryName" class="text-slate-300 font-medium">Brasil</span>
+                                <span id="displayCountryName" class="text-slate-300 font-medium">🌍 Nacionalidade não informada</span>
+                            </div>
+
+                            <div id="displayApiStatsRow" class="hidden flex flex-wrap items-center gap-3 pt-1 text-[11px]">
+                                <span class="text-amber-300 font-bold">🏆 <span id="displayTrophies">0</span> troféus</span>
+                                <span class="text-slate-600">•</span>
+                                <span class="text-purple-300 font-semibold">⚔️ <span id="displayWarStars">0</span> estrelas de guerra</span>
+                                <span class="text-slate-600">•</span>
+                                <span class="text-emerald-300 font-semibold">📦 <span id="displayDonations">0</span> doadas</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Botão para Editar Dados do Perfil (salva no localStorage da Tag) -->
-                    <button onclick="alternarEdicaoPerfil()" class="self-start md:self-center text-xs font-semibold px-3 py-2 rounded-xl bg-[#0E1626] hover:bg-[#1A263D] text-slate-300 hover:text-amber-300 border border-[#1E2B45] transition cursor-pointer shrink-0">
-                        ✏️ Editar Perfil
-                    </button>
+                    <div class="flex items-center gap-2 self-start md:self-center shrink-0">
+                        <button id="btnSyncCurrentApi" onclick="sincronizarTagAtualAPI()" class="text-xs font-bold px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 transition cursor-pointer">
+                            🔄 Atualizar API
+                        </button>
+                        <button onclick="alternarEdicaoPerfil()" class="text-xs font-semibold px-3 py-2 rounded-xl bg-[#0E1626] hover:bg-[#1A263D] text-slate-300 hover:text-amber-300 border border-[#1E2B45] transition cursor-pointer">
+                            ✏️ Editar
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Formulário Inline de Edição de Perfil (Oculto por padrão) -->
+                <!-- Formulário Inline de Edição Manual -->
                 <div id="editProfileForm" class="hidden mt-4 pt-4 border-t border-[#1E2B45] grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome do Jogador</label>
@@ -228,17 +305,7 @@
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nacionalidade</label>
                         <div class="flex gap-2">
-                            <select id="inputNationality" class="w-full bg-[#080D17] border border-[#1E2B45] focus:border-amber-400 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none">
-                                <option value="🇧🇷|Brasil">🇧🇷 Brasil</option>
-                                <option value="🇵🇹|Portugal">🇵🇹 Portugal</option>
-                                <option value="🇺🇸|Estados Unidos">🇺🇸 Estados Unidos</option>
-                                <option value="🇦🇷|Argentina">🇦🇷 Argentina</option>
-                                <option value="🇲🇽|México">🇲🇽 México</option>
-                                <option value="🇪🇸|Espanha">🇪🇸 Espanha</option>
-                                <option value="🇨🇴|Colômbia">🇨🇴 Colômbia</option>
-                                <option value="🇨🇱|Chile">🇨🇱 Chile</option>
-                                <option value="🌍|Internacional">🌍 Internacional</option>
-                            </select>
+                            <input id="inputNationalityText" type="text" placeholder="Ex: 🇧🇷 Brasil" class="w-full bg-[#080D17] border border-[#1E2B45] focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
                             <button onclick="salvarPerfilManual()" class="btn-clash-gold px-4 py-2 rounded-lg text-xs cursor-pointer shrink-0">
                                 Salvar
                             </button>
@@ -247,7 +314,7 @@
                 </div>
             </section>
 
-            <!-- Cards de Resumo Técnico (3 Colunas Responsivas) -->
+            <!-- Cards de Resumo Técnico -->
             <section class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div class="clash-card p-3.5 sm:p-4 rounded-2xl">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase block mb-1">Nível da Vila</span>
@@ -263,8 +330,8 @@
                 </div>
             </section>
 
-            <!-- Fila de Melhorias Ativas (Timers ao Vivo) -->
-            <section class="clash-card p-4 sm:p-6 rounded-2xl border-orange-500/30">
+            <!-- Fila de Melhorias Ativas (Oculta se não houver JSON) -->
+            <section id="timersSection" class="clash-card p-4 sm:p-6 rounded-2xl border-orange-500/30">
                 <div class="flex flex-wrap justify-between items-center gap-2 mb-4 border-b border-[#1E2B45] pb-3">
                     <h2 class="text-xs sm:text-sm font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-2">
                         🔨 Melhorias & Cooldowns Ativos
@@ -276,18 +343,21 @@
                 <div id="resTimers" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
             </section>
 
-            <!-- Barra de Navegação (Abas + Filtros Responsivos) -->
+            <!-- Barra de Navegação (Abas: Vila Principal | Base Construtor | Clã & Membros) -->
             <section class="clash-card p-3 sm:p-4 rounded-2xl space-y-3 lg:space-y-0 lg:flex lg:items-center lg:justify-between gap-4">
-                <div class="grid grid-cols-2 sm:flex gap-2">
-                    <button id="btnTabHome" onclick="alternarAba('home')" class="tab-active px-4 py-2.5 rounded-xl border border-blue-500 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
-                        <span>🏰</span> Vila Principal
+                <div class="grid grid-cols-3 sm:flex gap-2">
+                    <button id="btnTabHome" onclick="alternarAba('home')" class="tab-active px-3 sm:px-4 py-2.5 rounded-xl border border-blue-500 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
+                        <span>🏰</span> <span class="truncate">Vila Principal</span>
                     </button>
-                    <button id="btnTabBuilder" onclick="alternarAba('builder')" class="bg-[#0E1626] text-slate-300 hover:text-white px-4 py-2.5 rounded-xl border border-[#1E2B45] text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
-                        <span>⚒️</span> Base Construtor
+                    <button id="btnTabBuilder" onclick="alternarAba('builder')" class="bg-[#0E1626] text-slate-300 hover:text-white px-3 sm:px-4 py-2.5 rounded-xl border border-[#1E2B45] text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
+                        <span>⚒️</span> <span class="truncate">Construtor</span>
+                    </button>
+                    <button id="btnTabClan" onclick="alternarAba('clan')" class="bg-[#0E1626] text-slate-300 hover:text-white px-3 sm:px-4 py-2.5 rounded-xl border border-[#1E2B45] text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
+                        <span>🛡️</span> <span class="truncate">Clã & Membros</span>
                     </button>
                 </div>
 
-                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 lg:pt-0">
+                <div id="filterBar" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 lg:pt-0">
                     <button id="fltAll" onclick="aplicarFiltro('all')" class="filter-active whitespace-nowrap px-3 py-1.5 rounded-lg border border-amber-400 text-xs transition cursor-pointer">
                         Todos
                     </button>
@@ -307,7 +377,7 @@
             <div id="tabHomeContent" class="space-y-5">
                 
                 <!-- Progresso Geral & Estruturas -->
-                <section class="clash-card p-4 sm:p-6 rounded-2xl">
+                <section id="progressHomeSection" class="clash-card p-4 sm:p-6 rounded-2xl">
                     <div class="flex justify-between items-center mb-4 border-b border-[#1E2B45] pb-3">
                         <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider">
                             📊 Progresso da Vila Principal
@@ -365,7 +435,7 @@
                 </section>
 
                 <!-- Progresso do Laboratório -->
-                <section class="clash-card p-4 sm:p-6 rounded-2xl border-fuchsia-500/25">
+                <section id="progressLabSection" class="clash-card p-4 sm:p-6 rounded-2xl border-fuchsia-500/25">
                     <div class="flex justify-between items-center mb-4 border-b border-[#1E2B45] pb-3">
                         <h2 class="text-xs sm:text-sm font-extrabold text-fuchsia-400 uppercase tracking-wider">
                             🧪 Laboratório & Casa de Pets
@@ -422,7 +492,7 @@
                     </div>
                 </section>
 
-                <!-- Heróis & Equipamentos (Com Scrollbar Profissional clash-scroll) -->
+                <!-- Heróis & Equipamentos -->
                 <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div class="clash-card p-4 sm:p-5 rounded-2xl">
                         <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider mb-3.5 border-b border-[#1E2B45] pb-2.5">
@@ -474,7 +544,7 @@
                 </section>
 
                 <!-- Defesas & Edifícios da Vila Principal -->
-                <section class="clash-card p-4 sm:p-6 rounded-2xl">
+                <section id="buildingsHomeSection" class="clash-card p-4 sm:p-6 rounded-2xl">
                     <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider mb-4 border-b border-[#1E2B45] pb-2.5">
                         🛡️ Defesas, Muros e Estruturas
                     </h2>
@@ -482,7 +552,7 @@
                 </section>
 
                 <!-- Armadilhas da Vila Principal -->
-                <section class="clash-card p-4 sm:p-6 rounded-2xl">
+                <section id="trapsHomeSection" class="clash-card p-4 sm:p-6 rounded-2xl">
                     <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider mb-4 border-b border-[#1E2B45] pb-2.5">
                         💣 Armadilhas
                     </h2>
@@ -493,7 +563,6 @@
             <!-- ==================== ABA 2: BASE DO CONSTRUTOR ==================== -->
             <div id="tabBuilderContent" class="hidden space-y-5">
                 
-                <!-- Rastreador do 6º Construtor (B.O.B) -->
                 <section class="clash-card p-4 sm:p-6 rounded-2xl border-amber-400/30">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-4 border-b border-[#1E2B45] pb-3">
                         <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider">
@@ -506,7 +575,6 @@
                     <div id="resBobChecklist" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs"></div>
                 </section>
 
-                <!-- Heróis e Tropas da Base do Construtor -->
                 <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div class="clash-card p-4 sm:p-5 rounded-2xl">
                         <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider mb-3.5 border-b border-[#1E2B45] pb-2.5">
@@ -523,7 +591,6 @@
                     </div>
                 </section>
 
-                <!-- Estruturas & Defesas da Base do Construtor -->
                 <section class="clash-card p-4 sm:p-6 rounded-2xl">
                     <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider mb-4 border-b border-[#1E2B45] pb-2.5">
                         🏗️ Defesas e Edifícios (Base do Construtor)
@@ -531,7 +598,6 @@
                     <div id="resBuildings2" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
                 </section>
 
-                <!-- Armadilhas da Base do Construtor -->
                 <section class="clash-card p-4 sm:p-6 rounded-2xl">
                     <h2 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider mb-4 border-b border-[#1E2B45] pb-2.5">
                         💥 Armadilhas (Base do Construtor)
@@ -540,17 +606,89 @@
                 </section>
             </div>
 
+            <!-- ==================== ABA 3: CLÃ & MEMBROS (API OFICIAL) ==================== -->
+            <div id="tabClanContent" class="hidden space-y-5">
+                
+                <!-- Card Principal do Clã -->
+                <section id="clanDetailsCard" class="clash-card p-4 sm:p-6 rounded-2xl border-amber-400/30">
+                    <div id="clanEmptyState" class="text-center py-6 space-y-3">
+                        <p class="text-xs sm:text-sm text-slate-400">Nenhum clã carregado ainda. Busque a #TAG do jogador ou do clã na barra acima.</p>
+                    </div>
+
+                    <div id="clanLoadedContent" class="hidden space-y-5">
+                        <!-- Cabeçalho do Clã -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E2B45] pb-4">
+                            <div class="flex items-center gap-4">
+                                <img id="clanDetailBadge" src="" alt="Brasão do Clã" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h2 id="clanDetailName" class="text-lg sm:text-2xl font-extrabold text-white">Nome do Clã</h2>
+                                        <span id="clanDetailTag" class="text-xs font-bold clash-gold-text bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded font-mono-tech">#CLANTAG</span>
+                                        <span id="clanDetailLevel" class="text-xs font-extrabold bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2.5 py-0.5 rounded">Nível --</span>
+                                    </div>
+                                    <p id="clanDetailDesc" class="text-xs text-slate-300 mt-1.5 max-w-2xl leading-relaxed">--</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estatísticas do Clã -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div class="clash-inner p-3.5 rounded-xl">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">🌍 Localização / País</span>
+                                <span id="clanDetailLocation" class="text-xs sm:text-sm font-bold text-white">--</span>
+                            </div>
+                            <div class="clash-inner p-3.5 rounded-xl">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">⚔️ Liga Guerra de Clãs</span>
+                                <span id="clanDetailWarLeague" class="text-xs sm:text-sm font-bold clash-gold-text">--</span>
+                            </div>
+                            <div class="clash-inner p-3.5 rounded-xl">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">🏆 Guerras Vencidas</span>
+                                <span id="clanDetailWarWins" class="text-xs sm:text-sm font-bold text-emerald-400 font-mono-tech">--</span>
+                            </div>
+                            <div class="clash-inner p-3.5 rounded-xl">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">👥 Membros</span>
+                                <span id="clanDetailMembersCount" class="text-xs sm:text-sm font-bold text-sky-400 font-mono-tech">-- / 50</span>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Membros do Clã -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xs sm:text-sm font-extrabold clash-gold-text uppercase tracking-wider">
+                                    👥 Lista de Membros (Clique para inspecionar)
+                                </h3>
+                                <span class="text-[11px] text-slate-400">Ordenado por Troféus</span>
+                            </div>
+                            <div id="clanMembersList" class="clash-scroll space-y-2 max-h-[480px] overflow-y-auto pr-2"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
         </div>
     </main>
 
     <script>
-        const STORAGE_KEY = 'mrl_coc_saved_villages_v2';
+        const STORAGE_KEY = 'mrl_coc_saved_villages_v3';
+        const TOKEN_STORAGE_KEY = 'mrl_coc_api_token_v1';
+        const PROXY_BASE_URL = 'https://cocproxy.royaleapi.dev/v1';
+
+        // Token padrão informado por você (limpo sem espaços)
+        const DEFAULT_API_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjQ5YmE4ODQ2LWY2MzUtNGEwMy04MTFmLTFlYzkzMDkzZWI5ZiIsImlhdCI6MTc5NDUzMjEzMCwic3ViIjoiZGV2ZWxvcGVyLzUzMTYwZjkzLTU5MzAtNDA2ZS04MDZiLWUxYTlhZWY0YmU3OCIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjQ1Ljc5LjIxOC43OSJdLCJ0eXBlIjoiY2xpZW50In1dfQ.2KGa4E3atpSTisverR3I6m6atkn4mQVwEoIefTHyVUghJbsLWffi9K8R1_hmUNZk_7ccVuLlEQGPrhbndHoA5g';
+
         let timerInterval = null;
         let currentFilter = 'all';
         let isInputOpen = true;
         let activeTag = null;
+        let currentClanTag = null;
 
-        // Dicionário completo de tradução de IDs do Clash of Clans
+        const ROLE_TRANSLATE = {
+            leader: 'Líder',
+            coLeader: 'Co-líder',
+            admin: 'Ancião',
+            member: 'Membro'
+        };
+
         const ID_MAP = {
             93000000: "Aprendiz de Construtor", 93000001: "Assistente de Laboratório", 93000002: "Alquimista",
             28000000: "Rei Bárbaro", 28000001: "Rainha Arqueira", 28000002: "Grande Guardião",
@@ -616,7 +754,7 @@
             90000042: "Tocha Heroica", 9000043: "Cajado Heroico", 9000044: "Escudo Real",
             90000047: "Cinto de Ferro", 90000048: "Lança Sombria", 9000049: "Manto Sombrio",
             90000050: "Gema Sombria", 90000051: "Bola Espinhosa Épica", 90000052: "Orbe Flamejante",
-            90000053: "Botas sísmicas", 90000057: "Bracelete Real", 90000060: "Amuletos", 90000061: "Talismã"
+            90000053: "Botas Sísmicas", 90000057: "Bracelete Real", 90000060: "Amuletos", 90000061: "Talismã"
         };
 
         const MAX_LEVELS_BY_TH = {
@@ -657,25 +795,287 @@
             26000053: 3, 26000070: 3
         };
 
-        // ==================== PERFIL DO JOGADOR (NOME, CLÃ, NACIONALIDADE) ====================
+        // ==================== API SUPERCELL VIA ROYALEAPI PROXY ====================
+        function getApiToken() {
+            return (localStorage.getItem(TOKEN_STORAGE_KEY) || DEFAULT_API_TOKEN).replace(/\s+/g, '');
+        }
+
+        function alternarPainelToken() {
+            const p = document.getElementById('tokenConfigPanel');
+            p.classList.toggle('hidden');
+            document.getElementById('apiTokenInput').value = getApiToken();
+        }
+
+        function salvarTokenCustom() {
+            const val = document.getElementById('apiTokenInput').value.replace(/\s+/g, '');
+            if (val) {
+                localStorage.setItem(TOKEN_STORAGE_KEY, val);
+                alert('Token salvo com sucesso!');
+                document.getElementById('tokenConfigPanel').classList.add('hidden');
+            }
+        }
+
+        function normalizarTag(rawTag) {
+            let clean = rawTag.trim().toUpperCase().replace(/O/g, '0');
+            if (!clean.startsWith('#')) clean = '#' + clean;
+            return clean;
+        }
+
+        function mostrarFeedbackBusca(msg, isError = false) {
+            const fb = document.getElementById('searchFeedback');
+            fb.classList.remove('hidden', 'text-red-400', 'text-emerald-400', 'text-sky-300');
+            fb.classList.add(isError ? 'text-red-400' : 'text-emerald-400');
+            fb.innerText = msg;
+        }
+
+        async function fetchClashAPI(endpoint) {
+            const response = await fetch(`${PROXY_BASE_URL}${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${getApiToken()}`,
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody.reason || `Erro HTTP ${response.status}`);
+            }
+            return await response.json();
+        }
+
+        async function executarBuscaAPI(tagOverride = null, typeOverride = null) {
+            const rawTag = tagOverride || document.getElementById('searchTagInput').value;
+            const searchType = typeOverride || document.getElementById('searchTypeSelect').value;
+
+            if (!rawTag.trim()) {
+                mostrarFeedbackBusca('Digite uma #TAG válida para buscar.', true);
+                return;
+            }
+
+            const tag = normalizarTag(rawTag);
+            const encodedTag = encodeURIComponent(tag);
+            const btn = document.getElementById('btnSearchApi');
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳ Buscando...</span>';
+
+            try {
+                if (searchType === 'player') {
+                    const playerData = await fetchClashAPI(`/players/${encodedTag}`);
+                    let clanData = null;
+
+                    if (playerData.clan && playerData.clan.tag) {
+                        try {
+                            clanData = await fetchClashAPI(`/clans/${encodeURIComponent(playerData.clan.tag)}`);
+                        } catch (e) {
+                            console.warn('Falha ao buscar detalhes do clã:', e);
+                        }
+                    }
+
+                    integrarDadosAPIJogador(playerData, clanData);
+                    mostrarFeedbackBusca(`✅ Jogador ${playerData.name} (${playerData.tag}) carregado da API!`);
+                } else {
+                    const clanData = await fetchClashAPI(`/clans/${encodedTag}`);
+                    renderizarAbaCla(clanData);
+                    document.getElementById('resultadoContainer').classList.remove('hidden');
+                    alternarAba('clan');
+                    mostrarFeedbackBusca(`✅ Clã ${clanData.name} (${clanData.tag}) carregado!`);
+                }
+            } catch (err) {
+                mostrarFeedbackBusca(`❌ Falha na API: ${err.message}`, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Buscar</span>';
+            }
+        }
+
+        function integrarDadosAPIJogador(playerData, clanData) {
+            const contas = obterContasSalvas();
+            const tag = playerData.tag;
+            activeTag = tag;
+            currentClanTag = (playerData.clan && playerData.clan.tag) ? playerData.clan.tag : null;
+
+            const countryName = (clanData && clanData.location && clanData.location.name)
+                ? `🌍 ${clanData.location.name}`
+                : '🌍 Internacional';
+
+            const badgeUrl = (playerData.clan && playerData.clan.badgeUrls)
+                ? (playerData.clan.badgeUrls.medium || playerData.clan.badgeUrls.small)
+                : '';
+
+            const profile = {
+                playerName: playerData.name,
+                clanName: playerData.clan ? `${playerData.clan.name} (Nv. ${playerData.clan.clanLevel})` : 'Sem Clã',
+                clanTag: currentClanTag,
+                clanRole: ROLE_TRANSLATE[playerData.role] || '',
+                badgeUrl: badgeUrl,
+                country: countryName,
+                expLevel: playerData.expLevel,
+                trophies: playerData.trophies,
+                warStars: playerData.warStars,
+                donations: playerData.donations
+            };
+
+            if (contas[tag]) {
+                // Já existe JSON exportado dessa vila: mescla os dados da API com o JSON completo
+                contas[tag].profile = profile;
+                contas[tag].th = playerData.townHallLevel || contas[tag].th;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(contas));
+                renderizarBarraContas();
+                renderizarDashboard(contas[tag].payload, profile);
+            } else {
+                // Conta buscada apenas pela API (ainda sem JSON exportado do jogo)
+                const apiPseudoPayload = converterAPIParaPayloadBasico(playerData);
+                contas[tag] = {
+                    tag: tag,
+                    th: playerData.townHallLevel || '?',
+                    savedAt: Date.now(),
+                    isApiOnly: true,
+                    profile: profile,
+                    payload: apiPseudoPayload
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(contas));
+                renderizarBarraContas();
+                definirEstadoInput(false);
+                renderizarDashboard(apiPseudoPayload, profile);
+            }
+
+            if (clanData) {
+                renderizarAbaCla(clanData);
+            }
+        }
+
+        // Converte resposta da API pública para o formato de exibição caso o usuário ainda não tenha colado o JSON do jogo
+        function converterAPIParaPayloadBasico(p) {
+            return {
+                tag: p.tag,
+                timestamp: Math.floor(Date.now() / 1000),
+                isApiOnly: true,
+                buildings: [{ data: 1000001, lvl: p.townHallLevel || 1 }],
+                buildings2: p.builderHallLevel ? [{ data: 1000056, lvl: p.builderHallLevel }] : [],
+                heroes: [],
+                units: [],
+                spells: [],
+                pets: [],
+                equipment: []
+            };
+        }
+
+        async function sincronizarTagAtualAPI() {
+            if (!activeTag) return;
+            await executarBuscaAPI(activeTag, 'player');
+        }
+
+        function abrirClaDoJogador() {
+            if (currentClanTag) {
+                alternarAba('clan');
+            }
+        }
+
+        function renderizarAbaCla(clan) {
+            document.getElementById('clanEmptyState').classList.add('hidden');
+            document.getElementById('clanLoadedContent').classList.remove('hidden');
+
+            const badge = (clan.badgeUrls && (clan.badgeUrls.large || clan.badgeUrls.medium)) || '';
+            document.getElementById('clanDetailBadge').src = badge;
+            document.getElementById('clanDetailName').innerText = clan.name || 'Clã';
+            document.getElementById('clanDetailTag').innerText = clan.tag || '';
+            document.getElementById('clanDetailLevel').innerText = `Nível ${clan.clanLevel || 1}`;
+            document.getElementById('clanDetailDesc').innerText = clan.description || 'Sem descrição.';
+
+            document.getElementById('clanDetailLocation').innerText = (clan.location && clan.location.name) ? clan.location.name : 'Internacional';
+            document.getElementById('clanDetailWarLeague').innerText = (clan.warLeague && clan.warLeague.name) ? clan.warLeague.name : 'Não ranqueado';
+            document.getElementById('clanDetailWarWins').innerText = `${clan.warWins || 0} vitórias`;
+            document.getElementById('clanDetailMembersCount').innerText = `${clan.members || 0} / 50`;
+
+            const listEl = document.getElementById('clanMembersList');
+            const members = clan.memberList || [];
+            if (members.length === 0) {
+                listEl.innerHTML = '<p class="text-xs text-slate-500">Nenhum membro retornado.</p>';
+                return;
+            }
+
+            listEl.innerHTML = members.map((m, idx) => {
+                const roleLabel = ROLE_TRANSLATE[m.role] || m.role;
+                const roleColor = m.role === 'leader' ? 'text-amber-400' : (m.role === 'coLeader' ? 'text-orange-300' : 'text-slate-400');
+                return `
+                    <div onclick="inspecionarMembroCla('${m.tag}')" class="clash-inner hover:border-amber-400/50 p-3 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="text-xs font-bold text-slate-500 font-mono-tech w-6 text-right shrink-0">#${idx + 1}</span>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs sm:text-sm font-bold text-white truncate">${m.name}</span>
+                                    <span class="text-[10px] font-bold bg-amber-400/15 text-amber-300 px-1.5 py-0.5 rounded font-mono-tech shrink-0">CV ${m.townHallLevel || '?'}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-[11px] mt-0.5">
+                                    <span class="${roleColor} font-semibold">${roleLabel}</span>
+                                    <span class="text-slate-600">•</span>
+                                    <span class="text-slate-400 font-mono-tech">${m.tag}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-right shrink-0">
+                            <span class="text-xs font-extrabold clash-gold-text font-mono-tech block">🏆 ${m.trophies || 0}</span>
+                            <span class="text-[10px] text-emerald-400 font-mono-tech block">📦 ${m.donations || 0}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function inspecionarMembroCla(memberTag) {
+            document.getElementById('searchTagInput').value = memberTag;
+            document.getElementById('searchTypeSelect').value = 'player';
+            await executarBuscaAPI(memberTag, 'player');
+            alternarAba('home');
+        }
+
+        // ==================== PERFIL DO JOGADOR ====================
         function alternarEdicaoPerfil() {
-            const form = document.getElementById('editProfileForm');
-            form.classList.toggle('hidden');
+            document.getElementById('editProfileForm').classList.toggle('hidden');
         }
 
         function atualizarUIPerfil(profile) {
             document.getElementById('displayPlayerName').innerText = profile.playerName || 'Jogador';
             document.getElementById('displayClanName').innerText = profile.clanName || 'Sem Clã Definido';
-            document.getElementById('displayFlag').innerText = profile.flag || '🇧🇷';
-            document.getElementById('displayCountryName').innerText = profile.country || 'Brasil';
+            document.getElementById('displayCountryName').innerText = profile.country || '🌍 Internacional';
+
+            const roleEl = document.getElementById('displayClanRole');
+            if (profile.clanRole) {
+                roleEl.innerText = profile.clanRole;
+                roleEl.classList.remove('hidden');
+            } else {
+                roleEl.classList.add('hidden');
+            }
+
+            const badgeImg = document.getElementById('displayClanBadge');
+            const fallbackIcon = document.getElementById('displayFlagFallback');
+            if (profile.badgeUrl) {
+                badgeImg.src = profile.badgeUrl;
+                badgeImg.classList.remove('hidden');
+                fallbackIcon.classList.add('hidden');
+            } else {
+                badgeImg.classList.add('hidden');
+                fallbackIcon.classList.remove('hidden');
+            }
+
+            const expEl = document.getElementById('displayExpLevel');
+            const statsRow = document.getElementById('displayApiStatsRow');
+            if (profile.expLevel) {
+                expEl.innerText = `XP ${profile.expLevel}`;
+                expEl.classList.remove('hidden');
+                statsRow.classList.remove('hidden');
+                document.getElementById('displayTrophies').innerText = profile.trophies ?? 0;
+                document.getElementById('displayWarStars').innerText = profile.warStars ?? 0;
+                document.getElementById('displayDonations').innerText = profile.donations ?? 0;
+            } else {
+                expEl.classList.add('hidden');
+                statsRow.classList.add('hidden');
+            }
 
             document.getElementById('inputPlayerName').value = profile.playerName || '';
             document.getElementById('inputClanName').value = profile.clanName || '';
-            const selectVal = `${profile.flag || '🇧🇷'}|${profile.country || 'Brasil'}`;
-            const sel = document.getElementById('inputNationality');
-            if ([...sel.options].some(o => o.value === selectVal)) {
-                sel.value = selectVal;
-            }
+            document.getElementById('inputNationalityText').value = profile.country || '';
         }
 
         function salvarPerfilManual() {
@@ -683,14 +1083,15 @@
             const contas = obterContasSalvas();
             if (!contas[activeTag]) return;
 
-            const nome = document.getElementById('inputPlayerName').value.trim() || 'Jogador';
-            const cla = document.getElementById('inputClanName').value.trim() || 'Sem Clã Definido';
-            const [flag, country] = document.getElementById('inputNationality').value.split('|');
+            const current = contas[activeTag].profile || {};
+            current.playerName = document.getElementById('inputPlayerName').value.trim() || 'Jogador';
+            current.clanName = document.getElementById('inputClanName').value.trim() || 'Sem Clã Definido';
+            current.country = document.getElementById('inputNationalityText').value.trim() || '🌍 Internacional';
 
-            contas[activeTag].profile = { playerName: nome, clanName: cla, flag, country };
+            contas[activeTag].profile = current;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(contas));
 
-            atualizarUIPerfil(contas[activeTag].profile);
+            atualizarUIPerfil(current);
             renderizarBarraContas();
             document.getElementById('editProfileForm').classList.add('hidden');
         }
@@ -705,7 +1106,7 @@
                 label.innerText = 'Ocultar JSON';
             } else {
                 container.classList.add('hidden');
-                label.innerText = 'Inserir JSON';
+                label.innerText = 'JSON Vila';
             }
         }
 
@@ -728,22 +1129,17 @@
             const thObj = (data.buildings || []).find(b => b.data === 1000001);
             const existente = contas[data.tag] || {};
 
-            // Extrai automaticamente nome, clã e país se vierem no JSON, ou mantém o perfil salvo
             const profileAtual = existente.profile || {
                 playerName: data.name || 'Jogador',
                 clanName: (data.clan && data.clan.name) ? data.clan.name : 'Sem Clã Definido',
-                flag: '🇧🇷',
-                country: (data.location && data.location.name) ? data.location.name : 'Brasil'
+                country: '🌍 Brasil'
             };
-
-            if (data.name) profileAtual.playerName = data.name;
-            if (data.clan && data.clan.name) profileAtual.clanName = data.clan.name;
-            if (data.location && data.location.name) profileAtual.country = data.location.name;
 
             contas[data.tag] = {
                 tag: data.tag,
                 th: thObj ? thObj.lvl : '?',
                 savedAt: Date.now(),
+                isApiOnly: false,
                 profile: profileAtual,
                 payload: data
             };
@@ -768,11 +1164,9 @@
             tags.forEach(tag => {
                 const c = contas[tag];
                 const pName = c.profile && c.profile.playerName && c.profile.playerName !== 'Jogador' ? c.profile.playerName : tag;
-                const pFlag = (c.profile && c.profile.flag) ? c.profile.flag : '🇧🇷';
                 list.innerHTML += `
                     <div class="inline-flex items-center shrink-0 bg-[#0E1626] border border-[#28395C] hover:border-amber-400 rounded-xl overflow-hidden text-xs transition">
                         <button onclick="carregarContaSalva('${tag}')" class="px-3 py-2 text-slate-200 hover:text-amber-300 font-bold cursor-pointer flex items-center gap-1.5">
-                            <span>${pFlag}</span>
                             <span>${pName}</span>
                             <span class="text-[10px] bg-amber-400/15 text-amber-400 px-1.5 py-0.5 rounded font-extrabold">CV ${c.th}</span>
                         </button>
@@ -788,8 +1182,11 @@
             const contas = obterContasSalvas();
             if (!contas[tag]) return;
             activeTag = tag;
+            currentClanTag = (contas[tag].profile && contas[tag].profile.clanTag) || null;
             const payload = contas[tag].payload;
-            document.getElementById('jsonInput').value = JSON.stringify(payload, null, 2);
+            if (!payload.isApiOnly) {
+                document.getElementById('jsonInput').value = JSON.stringify(payload, null, 2);
+            }
             definirEstadoInput(false);
             renderizarDashboard(payload, contas[tag].profile);
         }
@@ -814,25 +1211,32 @@
 
         // ==================== ABAS & FILTROS ====================
         function alternarAba(aba) {
-            const homeDiv = document.getElementById('tabHomeContent');
-            const builderDiv = document.getElementById('tabBuilderContent');
-            const btnHome = document.getElementById('btnTabHome');
-            const btnBuilder = document.getElementById('btnTabBuilder');
+            const views = {
+                home: { div: 'tabHomeContent', btn: 'btnTabHome' },
+                builder: { div: 'tabBuilderContent', btn: 'btnTabBuilder' },
+                clan: { div: 'tabClanContent', btn: 'btnTabClan' }
+            };
 
-            if (aba === 'home') {
-                homeDiv.classList.remove('hidden');
-                builderDiv.classList.add('hidden');
-                btnHome.classList.add('tab-active');
-                btnHome.classList.remove('bg-[#0E1626]', 'text-slate-300', 'border-[#1E2B45]');
-                btnBuilder.classList.remove('tab-active');
-                btnBuilder.classList.add('bg-[#0E1626]', 'text-slate-300', 'border-[#1E2B45]');
+            Object.keys(views).forEach(k => {
+                const d = document.getElementById(views[k].div);
+                const b = document.getElementById(views[k].btn);
+                if (k === aba) {
+                    d.classList.remove('hidden');
+                    b.classList.add('tab-active');
+                    b.classList.remove('bg-[#0E1626]', 'text-slate-300', 'border-[#1E2B45]');
+                } else {
+                    d.classList.add('hidden');
+                    b.classList.remove('tab-active');
+                    b.classList.add('bg-[#0E1626]', 'text-slate-300', 'border-[#1E2B45]');
+                }
+            });
+
+            // Oculta barra de filtro de itens na aba do Clã
+            const filterBar = document.getElementById('filterBar');
+            if (aba === 'clan') {
+                filterBar.classList.add('hidden');
             } else {
-                homeDiv.classList.add('hidden');
-                builderDiv.classList.remove('hidden');
-                btnBuilder.classList.add('tab-active');
-                btnBuilder.classList.remove('bg-[#0E1626]', 'text-slate-300', 'border-[#1E2B45]');
-                btnHome.classList.remove('tab-active');
-                btnHome.classList.add('bg-[#0E1626]', 'text-slate-300', 'border-[#1E2B45]');
+                filterBar.classList.remove('hidden');
             }
         }
 
@@ -1146,7 +1550,7 @@
             `;
         }
 
-        function processarInputManual() {
+        async function processarInputManual() {
             const rawText = document.getElementById('jsonInput').value.trim();
             if (!rawText) {
                 alert('Cole um JSON válido antes de processar, parceiro!');
@@ -1160,6 +1564,11 @@
                 const profile = (activeTag && contas[activeTag]) ? contas[activeTag].profile : null;
                 definirEstadoInput(false);
                 renderizarDashboard(data, profile);
+
+                // Busca automaticamente nome, clã e nacionalidade na API pela tag do JSON
+                if (data.tag) {
+                    await executarBuscaAPI(data.tag, 'player');
+                }
             } catch (err) {
                 alert('Erro ao interpretar o JSON!\nDetalhe: ' + err.message);
             }
@@ -1168,17 +1577,14 @@
         function renderizarDashboard(data, savedProfile) {
             document.getElementById('resultadoContainer').classList.remove('hidden');
 
-            // Atualiza Perfil (Nome, Clã, Nacionalidade e Tag)
             document.getElementById('resTag').innerText = data.tag || '#DESCONHECIDA';
             const profile = savedProfile || {
                 playerName: data.name || 'Jogador',
                 clanName: (data.clan && data.clan.name) ? data.clan.name : 'Sem Clã Definido',
-                flag: '🇧🇷',
-                country: (data.location && data.location.name) ? data.location.name : 'Brasil'
+                country: '🌍 Brasil'
             };
             atualizarUIPerfil(profile);
 
-            // Timestamp, Ajudantes e CV/BC
             if (data.timestamp) {
                 const dateObj = new Date(data.timestamp * 1000);
                 document.getElementById('resTimestamp').innerText = dateObj.toLocaleDateString('pt-BR') + ' ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1187,7 +1593,7 @@
             }
 
             const helpersCount = data.helpers ? data.helpers.length : 0;
-            document.getElementById('resBuilders').innerText = `${helpersCount} Ativos`;
+            document.getElementById('resBuilders').innerText = data.isApiOnly ? 'Cole o JSON p/ ver' : `${helpersCount} Ativos`;
 
             const thObj = (data.buildings || []).find(b => b.data === 1000001);
             const bhObj = (data.buildings2 || []).find(b => b.data === 1000056);
@@ -1201,10 +1607,9 @@
             calcularProgresso(data, thLevel);
             verificarRequisitosBob(data);
 
-            // Vila Principal
             document.getElementById('resHeroes').innerHTML = (data.heroes && data.heroes.length > 0)
                 ? data.heroes.map(h => criarCardItem(ID_MAP[h.data] || `Herói ${h.data}`, h.lvl, caps.heroes[h.data], h.timer, null, 'clash-gold-text')).join('')
-                : '<p class="text-xs text-slate-500">Nenhum herói encontrado.</p>';
+                : '<p class="text-xs text-slate-500">Cole o JSON exportado do jogo para ver os detalhes completos.</p>';
 
             const equipList = data.equipment || [];
             document.getElementById('badgeEquipCount').innerText = `${equipList.length} itens`;
@@ -1239,7 +1644,6 @@
                 ? data.traps.map(t => criarCardItem(ID_MAP[t.data] || `Armadilha ${t.data}`, t.lvl, null, t.timer, t.cnt, 'text-orange-400')).join('')
                 : '<p class="text-xs text-slate-500">Nenhuma armadilha listada.</p>';
 
-            // Base do Construtor
             document.getElementById('resHeroes2').innerHTML = (data.heroes2 && data.heroes2.length > 0)
                 ? data.heroes2.map(h => criarCardItem(ID_MAP[h.data] || `Herói BC ${h.data}`, h.lvl, 35, h.timer, null, 'clash-gold-text')).join('')
                 : '<p class="text-xs text-slate-500">Nenhum herói da BC encontrado.</p>';
