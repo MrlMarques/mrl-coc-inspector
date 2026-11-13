@@ -1,0 +1,15 @@
+{
+  "name": "CoC Village Inspector",
+  "short_name": "CoC Inspector",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#121212",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/javascript/javascript.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
