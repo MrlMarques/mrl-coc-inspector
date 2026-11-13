@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoC Village Inspector - Mrl</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <!-- Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        body {
+            font-family: 'Courier Prime', monospace;
+            background-color: #0d0d0d;
+            color: #e5e5e5;
+        }
+        .gold-border { border-color: #d4af37; }
+        .gold-text { color: #d4af37; }
+        .red-accent { color: #ff3333; }
+        .bg-card { background-color: #161616; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+    <div class="w-full max-w-4xl">
+        <!-- Cabeçalho -->
+        <header class="text-center mb-8 border-b border-red-900/50 pb-4">
+            <h1 class="text-3xl font-bold gold-text tracking-wider">🏰 COC VILLAGE INSPECTOR</h1>
+            <p class="text-sm text-gray-400 mt-1">Cole o JSON da sua vila para analisar CV, Defesas e Heróis em tempo real.</p>
+        </header>
+
+        <!-- Área de Input -->
+        <div class="bg-card p-6 rounded-xl border gold-border shadow-2xl mb-8">
+            <label for="jsonInput" class="block text-sm font-bold mb-2 gold-text">Cole o JSON do Jogador:</label>
+            <textarea id="jsonInput" rows="5" class="w-full bg-black/60 border border-gray-800 rounded p-3 text-xs text-green-400 focus:outline-none focus:border-red-600 font-mono" placeholder='Cole o seu JSON aqui (ex: {"tag":"#GJ2YGGVP9", ...})'></textarea>
+            <div class="mt-4 flex gap-4">
+                <button onclick="analisarVila()" class="bg-red-700 hover:bg-red-800 text-white font-bold px-6 py-2 rounded transition tracking-wide text-sm cursor-pointer shadow-lg shadow-red-900/40">
+                    ANALISAR VILA
+                </button>
+                <button onclick="carregarExemplo()" class="bg-zinc-800 hover:bg-zinc-700 gold-text text-xs px-4 py-2 rounded transition cursor-pointer border border-zinc-700">
+                    Carregar Exemplo (#GJ2YGGVP9)
+                </button>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultadoContainer" class="hidden space-y-6">
+            <!-- Visão Geral (Tag e CV) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-card p-4 rounded-xl border border-zinc-800 text-center">
+                    <span class="text-xs text-gray-400 block">TAG DA VILA</span>
+                    <span id="resTag" class="text-lg font-bold gold-text">--</span>
+                </div>
+                <div class="bg-card p-4 rounded-xl border border-zinc-800 text-center">
+                    <span class="text-xs text-gray-400 block">CENTRO DE VILA (CV)</span>
+                    <span id="resCv" class="text-2xl font-bold text-red-500">--</span>
+                </div>
+                <div class="bg-card p-4 rounded-xl border border-zinc-800 text-center">
+                    <span class="text-xs text-gray-400 block">ATUALIZADO EM</span>
+                    <span id="resTimestamp" class="text-sm font-bold text-gray-300">--</span>
+                </div>
+            </div>
+
+            <!-- Heróis -->
+            <div class="bg-card p-6 rounded-xl border border-zinc-800">
+                <h2 class="text-lg font-bold gold-text mb-4 border-b border-zinc-800 pb-2">👑 Heróis</h2>
+                <div id="resHeroes" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+
+            <!-- Defesas Principais e Edifícios -->
+            <div class="bg-card p-6 rounded-xl border border-zinc-800">
+                <h2 class="text-lg font-bold gold-text mb-4 border-b border-zinc-800 pb-2">🛡️ Defesas e Estruturas</h2>
+                <div id="resBuildings" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de Análise do JSON do CoC -->
+    <script>
+        // Mapeamento de IDs internos do Clash of Clans para nomes legíveis
+        const ID_MAP = {
+            28000000: "Rei Bárbaro",
+            28000001: "Rainha Arqueira",
+            28000002: "Grande Guardião",
+            28000004: "Campeã Real",
+            28000006: "Minion Príncipe",
+            28000007: "Grande Guardião (Builder)",
+            // Edifícios comuns e defesas
+            1000001: "Centro de Vila (Town Hall)",
+            1000002: "Canhão",
+            1000003: "Archer Tower (Torre Arqueira)",
+            1000004: "Mortor",
+            1000005: "Air Defense (Defesa Aérea)",
+            1000006: "Wizard Tower (Torre do Mago)",
+            1000007: "Hidden Tesla (Tesla Oculta)",
+            1000008: "X-Bow (X-Besta)",
+            1000009: "Inferno Tower",
+            1000010: "Muros (Walls)",
+            1000011: "Eagle Artillery (Águia)",
+            1000012: "Scattershot",
+            1000013: "Bomb Tower",
+            1000014: "Builder's Hut",
+            1000056: "Monolith (Monólito)",
+            1000033: "Muros BH",
+            1000034: "Canhão Duplo",
+            1000035: "Archer Tower (BH)",
+            1000036: "Tesla Oculta (BH)"
+        };
+
+        function carregarExemplo() {
+            const exemploJSON = {
+                "tag":"#GJ2YGGVP9","timestamp":1794527573,
+                "buildings":[{"data":1000001,"lvl":17,"weapon":1},{"data":1000006,"lvl":15,"timer":165087},{"data":1000008,"lvl":21,"gear_up":1},{"data":1000009,"lvl":19,"gear_up":1},{"data":1000000,"lvl":12,"cnt":4},{"data":1000002,"lvl":8,"cnt":6},{"data":1000002,"lvl":9,"cnt":1},{"data":1000003,"lvl":14,"cnt":1},{"data":1000003,"lvl":15,"cnt":3},{"data":1000004,"lvl":9,"cnt":3},{"data":1000004,"lvl":10,"cnt":3},{"data":1000004,"lvl":11,"cnt":1},{"data":1000005,"lvl":16,"cnt":3},{"data":1000005,"lvl":17,"cnt":1},{"data":1000007,"lvl":14,"cnt":1},{"data":1000008,"lvl":19,"cnt":2},{"data":1000009,"lvl":19,"cnt":3},{"data":1000010,"lvl":10,"cnt":25},{"data":1000010,"lvl":11,"cnt":80},{"data":1000010,"lvl":12,"cnt":220},{"data":1000011,"lvl":11,"cnt":3},{"data":1000011,"lvl":12,"cnt":2},{"data":1000012,"lvl":9,"cnt":4},{"data":1000013,"lvl":10,"cnt":3},{"data":1000013,"lvl":12,"cnt":1},{"data":1000014,"lvl":12,"cnt":1},{"data":1000056,"lvl":3,"timer":263470}],
+                "heroes":[{"data":28000000,"lvl":39},{"data":28000001,"lvl":37},{"data":28000002,"lvl":21},{"data":28000004,"lvl":11},{"data":28000006,"lvl":19},{"data":28000007,"lvl":3}]
+            };
+            document.getElementById('jsonInput').value = JSON.stringify(exemploJSON, null, 2);
+            analisarVila();
+        }
+
+        function analisarVila() {
+            const rawText = document.getElementById('jsonInput').value.trim();
+            if (!rawText) {
+                alert('Cole um JSON válido antes de analisar, parceiro!');
+                return;
+            }
+
+            try {
+                const data = JSON.parse(rawText);
+                
+                // Exibir container de resultados
+                document.getElementById('resultadoContainer').classList.remove('hidden');
+
+                // Tag e Timestamp
+                document.getElementById('resTag').innerText = data.tag || 'Desconhecida';
+                if (data.timestamp) {
+                    const dateObj = new Date(data.timestamp * 1000);
+                    document.getElementById('resTimestamp').innerText = dateObj.toLocaleDateString('pt-BR') + ' ' + dateObj.toLocaleTimeString('pt-BR');
+                } else {
+                    document.getElementById('resTimestamp').innerText = 'N/A';
+                }
+
+                // Encontrar CV (Town Hall)
+                let cvLvl = '--';
+                // Buscar em buildings ou buildings2
+                const allBuildings = [...(data.buildings || []), ...(data.buildings2 || [])];
+                const thObj = allBuildings.find(b => b.data === 1000001);
+                if (thObj) {
+                    cvLvl = `CV ${thObj.lvl}`;
+                }
+                document.getElementById('resCv').innerText = cvLvl;
+
+                // Processar Heróis
+                const heroesContainer = document.getElementById('resHeroes');
+                heroesContainer.innerHTML = '';
+                if (data.heroes && data.heroes.length > 0) {
+                    data.heroes.forEach(hero => {
+                        const nomeHerois = ID_MAP[hero.data] || `Herói ID: ${hero.data}`;
+                        heroesContainer.innerHTML += `
+                            <div class="bg-black/40 p-3 rounded border border-zinc-800 flex justify-between items-center">
+                                <span class="text-sm font-semibold text-gray-200">${nomeHerois}</span>
+                                <span class="text-md font-bold gold-text">Nível ${hero.lvl}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    heroesContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum herói encontrado no JSON.</p>';
+                }
+
+                // Processar Defesas e Edifícios
+                const buildingsContainer = document.getElementById('resBuildings');
+                buildingsContainer.innerHTML = '';
+                if (allBuildings.length > 0) {
+                    allBuildings.forEach(b => {
+                        const nomeEdificio = ID_MAP[b.data] || `Edifício / ID: ${b.data}`;
+                        const qtdStr = b.cnt ? ` (Qtd: ${b.cnt})` : '';
+                        buildingsContainer.innerHTML += `
+                            <div class="bg-black/40 p-2.5 rounded border border-zinc-800/80 flex justify-between items-center text-xs">
+                                <span class="text-gray-300 font-medium">${nomeEdificio}${qtdStr}</span>
+                                <span class="text-red-400 font-bold">Nível ${b.lvl || 'N/A'}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    buildingsContainer.innerHTML = '<p class="text-xs text-gray-500">Nenhum edifício encontrado.</p>';
+                }
+
+            } catch (err) {
+                alert('Erro ao interpretar o JSON. Verifique se o formato está correto, mano.\nDetalhe: ' + err.message);
+            }
+        }
+    </script>
+
+    <!-- Registro do Service Worker para PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registrado com sucesso! Scope:', reg.scope))
+                    .catch(err => console.log('Falha ao registrar Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>
